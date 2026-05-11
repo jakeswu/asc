@@ -21,11 +21,19 @@ selected_owners = st.sidebar.multiselect("Owner", owner_options, default=owner_o
 operator_options = sorted(df["Operator"].dropna().unique())
 selected_operators = st.sidebar.multiselect("Operator", operator_options, default=operator_options)
 
+specialty_options = sorted(df["Specialty"].dropna().unique())
+selected_specialties = st.sidebar.multiselect("Specialty", specialty_options, default=specialty_options)
+
+region_options = sorted(df["Region"].dropna().unique())
+selected_regions = st.sidebar.multiselect("Region", region_options, default=region_options)
+
 filtered_df = df[
     df["City"].isin(selected_cities)
     & df["OwnerType"].isin(selected_owner_types)
     & df["Owner"].isin(selected_owners)
     & df["Operator"].isin(selected_operators)
+    & df["Specialty"].isin(selected_specialties)
+    & df["Region"].isin(selected_regions)
 ]
 
 st.write(f"Showing {len(filtered_df)} of {len(df)} ASCs")
