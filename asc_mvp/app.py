@@ -1,6 +1,8 @@
-import pandas as pd
 import streamlit as st
+import pandas as pd
 
-df = pd.read_csv("data/ascs.csv")
+st.title("WA ASC Intelligence")
+
+df = pd.read_csv("asc_mvp/data/ascs.csv")
 
 st.dataframe(df)
