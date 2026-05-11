@@ -4,6 +4,7 @@ import pandas as pd
 st.set_page_config(page_title="WA ASC Intelligence", layout="wide")
 
 st.title("WA ASC Intelligence")
+st.caption("Helping you spot patterns and unmet needs")
 
 df = pd.read_csv("asc_mvp/ascs.csv")
 
