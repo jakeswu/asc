@@ -5,7 +5,7 @@ st.set_page_config(page_title="WA ASC Intelligence", layout="wide")
 
 st.title("WA ASC Intelligence")
 
-df = pd.read_csv("asc_mvp/data/ascs.csv")
+df = pd.read_csv("asc_mvp/ascs.csv")
 
 st.sidebar.header("Filters")
 
