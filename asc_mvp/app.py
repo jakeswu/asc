@@ -11,38 +11,6 @@ df = pd.read_csv("asc_mvp/ascs.csv")
 
 st.header("ASC Concentration by City")
 
-fig = px.scatter_mapbox(
-    city_summary,
-    lat="Latitude",
-    lon="Longitude",
-    size="ASC_Count",
-    color="Region",
-    hover_name="City",
-    hover_data={
-        "ASC_Count": True,
-        "Specialty_Mix": True,
-        "Latitude": False,
-        "Longitude": False
-    },
-    zoom=5,
-    height=600
-)
-
-fig.update_layout(mapbox_style="open-street-map")
-fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-fig.update_layout(mapbox_style="carto-positron")
-fig.update_traces(
-    marker=dict(
-        opacity=0.85,
-        sizemin=8
-    )
-)
-
-st.plotly_chart(
-    fig,
-    use_container_width=True,
-    config={"scrollZoom": True}
-)
 
 st.sidebar.header("Filters")
 
@@ -86,6 +54,40 @@ city_summary = (
         Specialty_Mix=("Specialty", lambda x: ", ".join(sorted(set(x.dropna()))))
     )
     .reset_index()
+)
+
+
+fig = px.scatter_mapbox(
+    city_summary,
+    lat="Latitude",
+    lon="Longitude",
+    size="ASC_Count",
+    color="Region",
+    hover_name="City",
+    hover_data={
+        "ASC_Count": True,
+        "Specialty_Mix": True,
+        "Latitude": False,
+        "Longitude": False
+    },
+    zoom=5,
+    height=600
+)
+
+fig.update_layout(mapbox_style="open-street-map")
+fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+fig.update_layout(mapbox_style="carto-positron")
+fig.update_traces(
+    marker=dict(
+        opacity=0.85,
+        sizemin=8
+    )
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True,
+    config={"scrollZoom": True}
 )
 
 st.write(f"Showing {len(filtered_df)} of {len(df)} ASCs")
