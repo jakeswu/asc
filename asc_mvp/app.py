@@ -1,17 +1,16 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 st.set_page_config(page_title="WA ASC Intelligence", layout="wide")
 
 st.title("WA ASC Intelligence")
 st.caption("Helping you spot patterns and unmet needs")
 
+# Load data
 df = pd.read_csv("asc_mvp/ascs.csv")
 
-
-st.header("ASC Concentration by City")
-
-
+# Sidebar filters
 st.sidebar.header("Filters")
 
 city_options = sorted(df["City"].dropna().unique())
@@ -32,6 +31,7 @@ selected_specialties = st.sidebar.multiselect("Specialty", specialty_options, de
 region_options = sorted(df["Region"].dropna().unique())
 selected_regions = st.sidebar.multiselect("Region", region_options, default=region_options)
 
+# Apply filters
 filtered_df = df[
     df["City"].isin(selected_cities)
     & df["OwnerType"].isin(selected_owner_types)
@@ -41,7 +41,16 @@ filtered_df = df[
     & df["Region"].isin(selected_regions)
 ]
 
-import plotly.express as px
+# Top metrics
+col1, col2, col3, col4 = st.columns(4)
+
+col1.metric("ASCs Shown", len(filtered_df))
+col2.metric("Total ASCs", len(df))
+col3.metric("Cities Shown", filtered_df["City"].nunique())
+col4.metric("Specialties Shown", filtered_df["Specialty"].nunique())
+
+# Map
+st.header("ASC Concentration by City")
 
 coords = pd.read_csv("asc_mvp/city_coordinates.csv")
 map_df = filtered_df.merge(coords, on="City", how="left")
@@ -57,40 +66,98 @@ city_summary = (
     .reset_index()
 )
 
-
-fig = px.scatter_mapbox(
-    city_summary,
-    lat="Latitude",
-    lon="Longitude",
-    size="ASC_Count",
-    color="Region",
-    hover_name="City",
-    hover_data={
-        "ASC_Count": True,
-        "Specialty_Mix": True,
-        "ASC_Names": True,
-        "Latitude": False,
-        "Longitude": False
-    },
-    zoom=5,
-    height=600
-)
-
-fig.update_layout(mapbox_style="open-street-map")
-fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-fig.update_layout(mapbox_style="carto-positron")
-fig.update_traces(
-    marker=dict(
-        opacity=0.85,
-        sizemin=8
+if not city_summary.empty:
+    fig = px.scatter_mapbox(
+        city_summary,
+        lat="Latitude",
+        lon="Longitude",
+        size="ASC_Count",
+        color="Region",
+        hover_name="City",
+        hover_data={
+            "ASC_Count": True,
+            "Specialty_Mix": True,
+            "ASC_Names": True,
+            "Latitude": False,
+            "Longitude": False,
+        },
+        zoom=6,
+        height=600,
+        color_discrete_sequence=px.colors.qualitative.Bold,
     )
+
+    fig.update_layout(
+        mapbox_style="carto-positron",
+        mapbox_center={"lat": 47.4, "lon": -120.7},
+        margin={"r": 0, "t": 0, "l": 0, "b": 0},
+    )
+
+    fig.update_traces(
+        marker=dict(
+            opacity=0.9,
+            sizemin=8,
+        )
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={"scrollZoom": True},
+    )
+else:
+    st.info("No map data available for the current filters.")
+
+# Specialty distribution
+st.header("ASC Specialty Distribution")
+
+specialty_counts = (
+    filtered_df["Specialty"]
+    .value_counts()
+    .reset_index()
 )
 
-st.plotly_chart(
-    fig,
-    use_container_width=True,
-    config={"scrollZoom": True}
+specialty_counts.columns = ["Specialty", "ASC_Count"]
+
+if not specialty_counts.empty:
+    specialty_fig = px.bar(
+        specialty_counts,
+        x="Specialty",
+        y="ASC_Count",
+        color="Specialty",
+        color_discrete_sequence=px.colors.qualitative.Bold,
+    )
+
+    specialty_fig.update_layout(
+        xaxis_title="Specialty",
+        yaxis_title="ASC Count",
+        showlegend=False,
+        height=450,
+        margin={"r": 0, "t": 20, "l": 0, "b": 0},
+    )
+
+    st.plotly_chart(specialty_fig, use_container_width=True)
+else:
+    st.info("No specialty data available for the current filters.")
+
+# Operator leaderboard
+st.header("Top ASC Owners / Operators")
+
+operator_summary = (
+    filtered_df.groupby("Owner")
+    .agg(
+        ASC_Count=("Name", "count"),
+        Primary_Specialty=("Specialty", lambda x: x.value_counts().idxmax() if not x.empty else "Unknown"),
+        Regions=("Region", lambda x: ", ".join(sorted(set(x.dropna())))),
+        Cities=("City", lambda x: ", ".join(sorted(set(x.dropna())))),
+    )
+    .reset_index()
+    .sort_values(by="ASC_Count", ascending=False)
 )
+
+st.dataframe(operator_summary.head(25), use_container_width=True)
+
+# Raw table
+st.header("ASC Registry")
 
 st.write(f"Showing {len(filtered_df)} of {len(df)} ASCs")
 
