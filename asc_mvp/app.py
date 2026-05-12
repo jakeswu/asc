@@ -146,6 +146,7 @@ operator_summary = (
     filtered_df.groupby("Owner")
     .agg(
         ASC_Count=("Name", "count"),
+        Owner_Type=("OwnerType", lambda x: x.mode().iloc[0] if not x.mode().empty else "Unknown"),
         Primary_Specialty=("Specialty", lambda x: x.value_counts().idxmax() if not x.empty else "Unknown"),
         Regions=("Region", lambda x: ", ".join(sorted(set(x.dropna())))),
         Cities=("City", lambda x: ", ".join(sorted(set(x.dropna())))),
