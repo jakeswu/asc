@@ -9,17 +9,6 @@ st.caption("Helping you spot patterns and unmet needs")
 df = pd.read_csv("asc_mvp/ascs.csv")
 
 
-
-city_summary = (
-    map_df.dropna(subset=["Latitude", "Longitude"])
-    .groupby(["City", "Region", "Latitude", "Longitude"])
-    .agg(
-        ASC_Count=("Name", "count"),
-        Specialty_Mix=("Specialty", lambda x: ", ".join(sorted(set(x.dropna()))))
-    )
-    .reset_index()
-)
-
 st.header("ASC Concentration by City")
 
 fig = px.scatter_mapbox(
@@ -89,6 +78,15 @@ import plotly.express as px
 coords = pd.read_csv("asc_mvp/city_coordinates.csv")
 map_df = filtered_df.merge(coords, on="City", how="left")
 
+city_summary = (
+    map_df.dropna(subset=["Latitude", "Longitude"])
+    .groupby(["City", "Region", "Latitude", "Longitude"])
+    .agg(
+        ASC_Count=("Name", "count"),
+        Specialty_Mix=("Specialty", lambda x: ", ".join(sorted(set(x.dropna()))))
+    )
+    .reset_index()
+)
 
 st.write(f"Showing {len(filtered_df)} of {len(df)} ASCs")
 
