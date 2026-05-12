@@ -8,6 +8,45 @@ st.caption("Helping you spot patterns and unmet needs")
 
 df = pd.read_csv("asc_mvp/ascs.csv")
 
+import plotly.express as px
+
+coords = pd.read_csv("asc_mvp/city_coordinates.csv")
+map_df = df.merge(coords, on="City", how="left")
+
+city_summary = (
+    map_df.dropna(subset=["Latitude", "Longitude"])
+    .groupby(["City", "Region", "Latitude", "Longitude"])
+    .agg(
+        ASC_Count=("Name", "count"),
+        Specialty_Mix=("Specialty", lambda x: ", ".join(sorted(set(x.dropna()))))
+    )
+    .reset_index()
+)
+
+st.header("ASC Concentration by City")
+
+fig = px.scatter_mapbox(
+    city_summary,
+    lat="Latitude",
+    lon="Longitude",
+    size="ASC_Count",
+    color="Region",
+    hover_name="City",
+    hover_data={
+        "ASC_Count": True,
+        "Specialty_Mix": True,
+        "Latitude": False,
+        "Longitude": False
+    },
+    zoom=5,
+    height=600
+)
+
+fig.update_layout(mapbox_style="open-street-map")
+fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+
+st.plotly_chart(fig, use_container_width=True)
+
 st.sidebar.header("Filters")
 
 city_options = sorted(df["City"].dropna().unique())
