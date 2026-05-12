@@ -7,6 +7,16 @@ st.set_page_config(page_title="WA ASC Intelligence", layout="wide")
 st.title("WA ASC Intelligence")
 st.caption("Helping you spot patterns and unmet needs")
 
+from streamlit_javascript import st_javascript
+
+st_javascript("""
+var script = document.createElement('script');
+script.setAttribute('data-goatcounter', 'https://ascwastate.goatcounter.com/count');
+script.async = true;
+script.src = 'https://gc.zgo.at/count.js';
+document.head.appendChild(script);
+""")
+
 # Load data
 df = pd.read_csv("asc_mvp/ascs.csv")
 
