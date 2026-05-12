@@ -52,6 +52,7 @@ city_summary = (
     .agg(
         ASC_Count=("Name", "count"),
         Specialty_Mix=("Specialty", lambda x: ", ".join(sorted(set(x.dropna()))))
+        ASC_Names=("Name", lambda x: "<br>".join(sorted(x.dropna())))
     )
     .reset_index()
 )
@@ -67,6 +68,7 @@ fig = px.scatter_mapbox(
     hover_data={
         "ASC_Count": True,
         "Specialty_Mix": True,
+        "ASC_Names": True,
         "Latitude": False,
         "Longitude": False
     },
