@@ -8,10 +8,7 @@ st.caption("Helping you spot patterns and unmet needs")
 
 df = pd.read_csv("asc_mvp/ascs.csv")
 
-import plotly.express as px
 
-coords = pd.read_csv("asc_mvp/city_coordinates.csv")
-map_df = filtered_df.merge(coords, on="City", how="left")
 
 city_summary = (
     map_df.dropna(subset=["Latitude", "Longitude"])
@@ -86,6 +83,12 @@ filtered_df = df[
     & df["Specialty"].isin(selected_specialties)
     & df["Region"].isin(selected_regions)
 ]
+
+import plotly.express as px
+
+coords = pd.read_csv("asc_mvp/city_coordinates.csv")
+map_df = filtered_df.merge(coords, on="City", how="left")
+
 
 st.write(f"Showing {len(filtered_df)} of {len(df)} ASCs")
 
