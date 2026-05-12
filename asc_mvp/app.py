@@ -17,6 +17,8 @@ script.async = true;
 script.src = 'https://gc.zgo.at/count.js';
 document.head.appendChild(script);
 """)
+<script data-goatcounter="https://ascwastate.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 
 # Load data
 df = pd.read_csv("asc_mvp/ascs.csv")
