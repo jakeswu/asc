@@ -51,8 +51,8 @@ city_summary = (
     .groupby(["City", "Region", "Latitude", "Longitude"])
     .agg(
         ASC_Count=("Name", "count"),
-        Specialty_Mix=("Specialty", lambda x: ", ".join(sorted(set(x.dropna()))))
-        ASC_Names=("Name", lambda x: "<br>".join(sorted(x.dropna())))
+        Specialty_Mix=("Specialty", lambda x: ", ".join(sorted(set(x.dropna())))),
+        ASC_Names=("Name", lambda x: "<br>".join(sorted(x.dropna()))),
     )
     .reset_index()
 )
