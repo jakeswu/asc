@@ -11,7 +11,7 @@ df = pd.read_csv("asc_mvp/ascs.csv")
 import plotly.express as px
 
 coords = pd.read_csv("asc_mvp/city_coordinates.csv")
-map_df = df.merge(coords, on="City", how="left")
+map_df = filtered_df.merge(coords, on="City", how="left")
 
 city_summary = (
     map_df.dropna(subset=["Latitude", "Longitude"])
@@ -44,8 +44,19 @@ fig = px.scatter_mapbox(
 
 fig.update_layout(mapbox_style="open-street-map")
 fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+fig.update_layout(mapbox_style="carto-positron")
+fig.update_traces(
+    marker=dict(
+        opacity=0.85,
+        sizemin=8
+    )
+)
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(
+    fig,
+    use_container_width=True,
+    config={"scrollZoom": True}
+)
 
 st.sidebar.header("Filters")
 
