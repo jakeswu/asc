@@ -167,7 +167,25 @@ operator_summary = (
 )
 
 st.dataframe(operator_summary.head(25), use_container_width=True)
+# Recent market movements
+st.header("Recent ASC Market Movements")
 
+movements_df = pd.read_csv("asc_mvp/movements.csv")
+
+if not movements_df.empty:
+
+    movements_df = movements_df.sort_values(
+        by="Date",
+        ascending=False
+    )
+
+    st.dataframe(
+        movements_df,
+        use_container_width=True
+    )
+
+else:
+    st.info("No market movements tracked yet.")
 # Raw table
 st.header("ASC Registry")
 
