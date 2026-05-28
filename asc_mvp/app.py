@@ -174,20 +174,19 @@ from streamlit_folium import st_folium
 
 st.header("ASC Concentration Map")
 
-    # County choropleth via Folium
-    @st.cache_data(ttl=86400)
-    def load_wa_geojson():
-        url = "https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json"
-        r = requests.get(url, timeout=10)
-        all_counties = r.json()
-        wa_counties = {
-            "type": "FeatureCollection",
-            "features": [
-                f for f in all_counties["features"]
-                if f["id"].startswith("53")
-            ]
-        }
-        return wa_counties
+@st.cache_data(ttl=86400)
+def load_wa_geojson():
+    url = "https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json"
+    r = requests.get(url, timeout=10)
+    all_counties = r.json()
+    wa_counties = {
+        "type": "FeatureCollection",
+        "features": [
+            f for f in all_counties["features"]
+            if f["id"].startswith("53")
+        ]
+    }
+    return wa_counties
 
     wa_geojson = load_wa_geojson()
 
