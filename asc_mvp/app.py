@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
-import requests
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="WA ASC Intelligence", layout="wide")
@@ -18,44 +16,30 @@ components.html(
     height=0,
 )
 
-# ── Census population fetch ───────────────────────────────────────────────────
-@st.cache_data(ttl=86400)
-def fetch_wa_county_population():
-    """
-    Pull ACS 5-year county population estimates for Washington State.
-    Returns a DataFrame with County (clean name), FIPS, Population.
-    No API key required for this endpoint.
-    """
-    url = (
-        "https://api.census.gov/data/2022/acs/acs5"
-        "?get=NAME,B01003_001E"
-        "&for=county:*"
-        "&in=state:53"  # 53 = Washington
-    )
-    try:
-        r = requests.get(url, timeout=10)
-        r.raise_for_status()
-        data = r.json()
-        headers = data[0]
-        rows = data[1:]
-        pop_df = pd.DataFrame(rows, columns=headers)
-        pop_df = pop_df.rename(columns={"B01003_001E": "Population", "NAME": "County_Full"})
-        pop_df["Population"] = pd.to_numeric(pop_df["Population"], errors="coerce")
-        # Strip " County, Washington" suffix
-        pop_df["County"] = pop_df["County_Full"].str.replace(r" County, Washington", "", regex=True)
-        pop_df["FIPS"] = pop_df["state"] + pop_df["county"]
-        return pop_df[["County", "FIPS", "Population"]]
-    except Exception as e:
-        st.warning(f"Could not fetch Census data: {e}. White space analysis unavailable.")
-        return pd.DataFrame(columns=["County", "FIPS", "Population"])
+# ── WA County Population (Census ACS 2022, baked in to avoid API dependency) ──
+WA_COUNTY_POPULATION = {
+    "Adams": 21040, "Asotin": 22582, "Benton": 204390, "Chelan": 79801,
+    "Clallam": 77331, "Clark": 503478, "Columbia": 3985, "Cowlitz": 110593,
+    "Douglas": 44734, "Ferry": 7627, "Franklin": 98592, "Garfield": 2225,
+    "Grant": 99546, "Grays Harbor": 75379, "Island": 87038, "Jefferson": 34499,
+    "King": 2269675, "Kitsap": 284320, "Kittitas": 47935, "Klickitat": 23149,
+    "Lewis": 84141, "Lincoln": 10939, "Mason": 67798, "Okanogan": 43029,
+    "Pacific": 23066, "Pend Oreille": 13943, "Pierce": 921130, "San Juan": 17582,
+    "Skagit": 131062, "Skamania": 12083, "Snohomish": 857837, "Spokane": 536704,
+    "Stevens": 46680, "Thurston": 299418, "Wahkiakum": 4488, "Walla Walla": 62977,
+    "Whatcom": 240653, "Whitman": 50541, "Yakima": 257000,
+}
 
+pop_df = pd.DataFrame([
+    {"County": k, "Population": v} for k, v in WA_COUNTY_POPULATION.items()
+])
 
 # ── Load data ─────────────────────────────────────────────────────────────────
-df = pd.read_csv("asc_mvp/ascs.csv")
-coords = pd.read_csv("asc_mvp/city_coordinates.csv")
-movements_df = pd.read_csv("asc_mvp/movements.csv")
-pop_df = fetch_wa_county_population()
+df = pd.read_csv("ascs.csv")
+coords = pd.read_csv("city_coordinates.csv")
+movements_df = pd.read_csv("movements.csv")
 
+# Add County via city lookup
 city_county = pd.read_csv("city_to_county.csv")
 df = df.merge(city_county, on="City", how="left")
 
@@ -101,79 +85,67 @@ col4.metric("Specialties Shown", filtered_df["Specialty"].nunique())
 st.header("🔍 White Space Analysis — ASC Density by County")
 st.caption("Counties ranked by ASCs per 100,000 residents. Lower = underserved relative to population.")
 
-if not pop_df.empty and "County" in df.columns:
-    # Count ASCs per county from full (unfiltered) dataset
-    county_asc_counts = (
-        df.groupby("County")
-        .agg(ASC_Count=("Name", "count"))
-        .reset_index()
-    )
+county_asc_counts = (
+    df.groupby("County")
+    .agg(ASC_Count=("Name", "count"))
+    .reset_index()
+)
 
-    # Merge with population
-    county_analysis = pop_df.merge(county_asc_counts, on="County", how="left")
-    county_analysis["ASC_Count"] = county_analysis["ASC_Count"].fillna(0).astype(int)
-    county_analysis["ASCs_per_100k"] = (
-        (county_analysis["ASC_Count"] / county_analysis["Population"]) * 100000
-    ).round(2)
+county_analysis = pop_df.merge(county_asc_counts, on="County", how="left")
+county_analysis["ASC_Count"] = county_analysis["ASC_Count"].fillna(0).astype(int)
+county_analysis["ASCs_per_100k"] = (
+    (county_analysis["ASC_Count"] / county_analysis["Population"]) * 100000
+).round(2)
 
-    # State average for reference line
-    state_avg = (df.shape[0] / pop_df["Population"].sum()) * 100000
+state_avg = (df.shape[0] / pop_df["Population"].sum()) * 100000
 
-    # Sort: zero-ASC counties first, then lowest density
-    county_analysis = county_analysis.sort_values(
-        by=["ASC_Count", "ASCs_per_100k"], ascending=[True, True]
-    )
+county_analysis = county_analysis.sort_values(
+    by=["ASC_Count", "ASCs_per_100k"], ascending=[True, True]
+)
 
-    # Insight callout — top 3 underserved counties with population > 50k
-    underserved = county_analysis[
-        (county_analysis["Population"] > 50000) & (county_analysis["ASCs_per_100k"] < state_avg)
-    ].head(3)
+# Insight callout
+underserved = county_analysis[
+    (county_analysis["Population"] > 50000) & (county_analysis["ASCs_per_100k"] < state_avg)
+].head(3)
 
-    if not underserved.empty:
-        st.info(
-            "**Top underserved markets (population >50k, below state average density):** "
-            + " · ".join(
-                f"{row.County} ({row.ASC_Count} ASCs, {row.Population:,.0f} people)"
-                for row in underserved.itertuples()
-            )
-        )
-
-    # Bar chart — all counties
-    ws_fig = px.bar(
-        county_analysis,
-        x="County",
-        y="ASCs_per_100k",
-        color="ASCs_per_100k",
-        color_continuous_scale="RdYlGn",
-        hover_data={"ASC_Count": True, "Population": ":,"},
-        labels={"ASCs_per_100k": "ASCs per 100k residents"},
-        height=450,
-    )
-    ws_fig.add_hline(
-        y=state_avg,
-        line_dash="dash",
-        line_color="steelblue",
-        annotation_text=f"State avg: {state_avg:.2f}",
-        annotation_position="top right",
-    )
-    ws_fig.update_layout(
-        xaxis_tickangle=-45,
-        margin={"r": 0, "t": 20, "l": 0, "b": 120},
-        coloraxis_showscale=False,
-    )
-    st.plotly_chart(ws_fig, use_container_width=True)
-
-    # White space table
-    with st.expander("Full county density table"):
-        st.dataframe(
-            county_analysis[["County", "Population", "ASC_Count", "ASCs_per_100k"]]
-            .sort_values("ASCs_per_100k"),
-            use_container_width=True,
-        )
-else:
+if not underserved.empty:
     st.info(
-        "White space analysis requires a **County** column in your ASC data and a live Census connection. "
-        "Add a County column to ascs.csv to enable this section."
+        "**Top underserved markets (population >50k, below state average density):** "
+        + " · ".join(
+            f"{row.County} ({row.ASC_Count} ASCs, {row.Population:,.0f} people)"
+            for row in underserved.itertuples()
+        )
+    )
+
+ws_fig = px.bar(
+    county_analysis,
+    x="County",
+    y="ASCs_per_100k",
+    color="ASCs_per_100k",
+    color_continuous_scale="RdYlGn",
+    hover_data={"ASC_Count": True, "Population": ":,"},
+    labels={"ASCs_per_100k": "ASCs per 100k residents"},
+    height=450,
+)
+ws_fig.add_hline(
+    y=state_avg,
+    line_dash="dash",
+    line_color="steelblue",
+    annotation_text=f"State avg: {state_avg:.2f}",
+    annotation_position="top right",
+)
+ws_fig.update_layout(
+    xaxis_tickangle=-45,
+    margin={"r": 0, "t": 20, "l": 0, "b": 120},
+    coloraxis_showscale=False,
+)
+st.plotly_chart(ws_fig, use_container_width=True)
+
+with st.expander("Full county density table"):
+    st.dataframe(
+        county_analysis[["County", "Population", "ASC_Count", "ASCs_per_100k"]]
+        .sort_values("ASCs_per_100k"),
+        use_container_width=True,
     )
 
 # ── Map ───────────────────────────────────────────────────────────────────────
@@ -243,12 +215,10 @@ if not specialty_counts.empty:
         margin={"r": 0, "t": 20, "l": 0, "b": 0},
     )
     st.plotly_chart(specialty_fig, use_container_width=True)
-else:
-    st.info("No specialty data available for the current filters.")
 
 # ── Specialty × Region heatmap ────────────────────────────────────────────────
 st.header("Specialty Coverage by Region")
-st.caption("How many ASCs offer each specialty, broken down by region. Blank = none present.")
+st.caption("How many ASCs offer each specialty per region. Blank = none present.")
 
 pivot = (
     filtered_df.groupby(["Region", "Specialty"])
