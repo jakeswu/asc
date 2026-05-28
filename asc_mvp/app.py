@@ -259,19 +259,39 @@ for feature in wa_geojson["features"]:
 
 if show_facilities:
     facility_df = filtered_df.merge(coords, on="City", how="left").dropna(subset=["Latitude", "Longitude"])
-    for _, row in facility_df.iterrows():
-        folium.CircleMarker(
-            location=[row["Latitude"], row["Longitude"]],
-            radius=6,
-            color="steelblue",
-            fill=True,
-            fill_color="steelblue",
-            fill_opacity=0.8,
-            tooltip=folium.Tooltip(
-                f"<b>{row['Name']}</b><br>"
-                f"Specialty: {row['Specialty']}<br>"
-                f"Owner: {row['Owner']}<br>"
-                f"City: {row['City']}"
+    
+    city_groups = facility_df.groupby(["City", "Latitude", "Longitude"])
+    
+    for (city, lat, lon), group in city_groups:
+        count = len(group)
+        names = "<br>• ".join(sorted(group["Name"].dropna()))
+        
+        folium.Marker(
+            location=[lat, lon],
+            icon=folium.DivIcon(
+                html=f"""
+                    <div style="
+                        background-color: steelblue;
+                        color: white;
+                        border-radius: 50%;
+                        width: 24px;
+                        height: 24px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 11px;
+                        font-weight: bold;
+                        border: 2px solid white;
+                        box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+                    ">{count}</div>
+                """,
+                icon_size=(24, 24),
+                icon_anchor=(12, 12),
+            ),
+            tooltip=folium.Tooltip(f"<b>{city}</b><br>{count} ASC{'s' if count > 1 else ''}"),
+            popup=folium.Popup(
+                f"<b>{city}</b> — {count} ASC{'s' if count > 1 else ''}<br><br>• {names}",
+                max_width=300,
             ),
         ).add_to(m)
 
