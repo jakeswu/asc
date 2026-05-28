@@ -165,10 +165,12 @@ with st.expander("Full county density table"):
 # ── Map ───────────────────────────────────────────────────────────────────────
 # ── Map ───────────────────────────────────────────────────────────────────────
 # Drop this section into app.py in place of your existing map section.
+# Drop this section into app.py in place of your existing map section.
 # Requirements: add 'folium' and 'streamlit-folium' to requirements.txt
 
+import folium
 import requests
-
+from streamlit_folium import st_folium
 
 st.header("ASC Concentration Map")
 
@@ -245,6 +247,7 @@ else:
         .agg(
             ASC_Count=("Name", "count"),
             Specialties=("Specialty", lambda x: ", ".join(sorted(set(x.dropna())))),
+            ASC_Names=("Name", lambda x: "<br>• ".join(sorted(x.dropna()))),
         )
         .reset_index()
     )
@@ -256,6 +259,7 @@ else:
         (county_map_data["ASC_Count"] / county_map_data["Population"]) * 100000
     ).round(2)
     county_map_data["Specialties"] = county_map_data["Specialties"].fillna("None")
+    county_map_data["ASC_Names"] = county_map_data["ASC_Names"].fillna("None")
 
     # FIPS lookup for WA counties
     WA_COUNTY_FIPS = {
@@ -296,8 +300,10 @@ else:
     ).add_to(m)
 
     # Tooltip layer
+    county_map_data["ASC_Names"] = county_map_data["ASC_Names"].fillna("None")
+
     tooltip_data = county_map_data.set_index("FIPS")[
-        ["County", "ASC_Count", "ASCs_per_100k", "Population", "Specialties"]
+        ["County", "ASC_Count", "ASCs_per_100k", "Population", "Specialties", "ASC_Names"]
     ].to_dict(orient="index")
 
     for feature in wa_geojson["features"]:
@@ -309,7 +315,8 @@ else:
                 ASCs: {d['ASC_Count']}<br>
                 Density: {d['ASCs_per_100k']} per 100k<br>
                 Population: {d['Population']:,}<br>
-                Specialties: {d['Specialties']}
+                Specialties: {d['Specialties']}<br><br>
+                <b>Facilities:</b><br>• {d['ASC_Names']}
             """
             folium.GeoJson(
                 feature,
@@ -321,6 +328,7 @@ else:
             ).add_to(m)
 
     st_folium(m, width="100%", height=600, returned_objects=[])
+
 
 # ── Specialty distribution ────────────────────────────────────────────────────
 st.header("ASC Specialty Distribution")
