@@ -5,6 +5,10 @@ import streamlit.components.v1 as components
 
 import requests as req
 
+<script data-goatcounter="https://ascwastate.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+
+
 def track_pageview():
     try:
         r = req.get(
