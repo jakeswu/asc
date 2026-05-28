@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import streamlit.components.v1 as components
+import folium
+from streamlit_folium import st_folium
 
 import requests as req
 
@@ -161,49 +163,164 @@ with st.expander("Full county density table"):
     )
 
 # ── Map ───────────────────────────────────────────────────────────────────────
-st.header("ASC Concentration by City")
+# ── Map ───────────────────────────────────────────────────────────────────────
+# Drop this section into app.py in place of your existing map section.
+# Requirements: add 'folium' and 'streamlit-folium' to requirements.txt
 
-map_df = filtered_df.merge(coords, on="City", how="left")
+import requests
 
-city_summary = (
-    map_df.dropna(subset=["Latitude", "Longitude"])
-    .groupby(["City", "Region", "Latitude", "Longitude"])
-    .agg(
-        ASC_Count=("Name", "count"),
-        Specialty_Mix=("Specialty", lambda x: ", ".join(sorted(set(x.dropna())))),
-        ASC_Names=("Name", lambda x: "<br>".join(sorted(x.dropna()))),
-    )
-    .reset_index()
+
+st.header("ASC Concentration Map")
+
+map_view = st.radio(
+    "View by",
+    ["City (bubbles)", "County (density)"],
+    horizontal=True,
 )
 
-if not city_summary.empty:
-    fig = px.scatter_mapbox(
-        city_summary,
-        lat="Latitude",
-        lon="Longitude",
-        size="ASC_Count",
-        color="Region",
-        hover_name="City",
-        hover_data={
-            "ASC_Count": True,
-            "Specialty_Mix": True,
-            "ASC_Names": True,
-            "Latitude": False,
-            "Longitude": False,
-        },
-        zoom=6,
-        height=600,
-        color_discrete_sequence=px.colors.qualitative.Bold,
+if map_view == "City (bubbles)":
+    map_df = filtered_df.merge(coords, on="City", how="left")
+
+    city_summary = (
+        map_df.dropna(subset=["Latitude", "Longitude"])
+        .groupby(["City", "Region", "Latitude", "Longitude"])
+        .agg(
+            ASC_Count=("Name", "count"),
+            Specialty_Mix=("Specialty", lambda x: ", ".join(sorted(set(x.dropna())))),
+            ASC_Names=("Name", lambda x: "<br>".join(sorted(x.dropna()))),
+        )
+        .reset_index()
     )
-    fig.update_layout(
-        mapbox_style="carto-positron",
-        mapbox_center={"lat": 47.4, "lon": -120.7},
-        margin={"r": 0, "t": 0, "l": 0, "b": 0},
-    )
-    fig.update_traces(marker=dict(opacity=0.9, sizemin=8))
-    st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
+
+    if not city_summary.empty:
+        fig = px.scatter_mapbox(
+            city_summary,
+            lat="Latitude",
+            lon="Longitude",
+            size="ASC_Count",
+            color="Region",
+            hover_name="City",
+            hover_data={
+                "ASC_Count": True,
+                "Specialty_Mix": True,
+                "ASC_Names": True,
+                "Latitude": False,
+                "Longitude": False,
+            },
+            zoom=6,
+            height=600,
+            color_discrete_sequence=px.colors.qualitative.Bold,
+        )
+        fig.update_layout(
+            mapbox_style="carto-positron",
+            mapbox_center={"lat": 47.4, "lon": -120.7},
+            margin={"r": 0, "t": 0, "l": 0, "b": 0},
+        )
+        fig.update_traces(marker=dict(opacity=0.9, sizemin=8))
+        st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
+    else:
+        st.info("No map data available for the current filters.")
+
 else:
-    st.info("No map data available for the current filters.")
+    # County choropleth via Folium
+    @st.cache_data(ttl=86400)
+    def load_wa_geojson():
+        url = "https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json"
+        r = requests.get(url, timeout=10)
+        all_counties = r.json()
+        wa_counties = {
+            "type": "FeatureCollection",
+            "features": [
+                f for f in all_counties["features"]
+                if f["id"].startswith("53")
+            ]
+        }
+        return wa_counties
+
+    wa_geojson = load_wa_geojson()
+
+    # Build county ASC count from filtered data
+    county_counts = (
+        filtered_df.groupby("County")
+        .agg(
+            ASC_Count=("Name", "count"),
+            Specialties=("Specialty", lambda x: ", ".join(sorted(set(x.dropna())))),
+        )
+        .reset_index()
+    )
+
+    # Merge with population for density
+    county_map_data = pop_df.merge(county_counts, on="County", how="left")
+    county_map_data["ASC_Count"] = county_map_data["ASC_Count"].fillna(0).astype(int)
+    county_map_data["ASCs_per_100k"] = (
+        (county_map_data["ASC_Count"] / county_map_data["Population"]) * 100000
+    ).round(2)
+    county_map_data["Specialties"] = county_map_data["Specialties"].fillna("None")
+
+    # FIPS lookup for WA counties
+    WA_COUNTY_FIPS = {
+        "Adams": "53001", "Asotin": "53003", "Benton": "53005", "Chelan": "53007",
+        "Clallam": "53009", "Clark": "53011", "Columbia": "53013", "Cowlitz": "53015",
+        "Douglas": "53017", "Ferry": "53019", "Franklin": "53021", "Garfield": "53023",
+        "Grant": "53025", "Grays Harbor": "53027", "Island": "53029", "Jefferson": "53031",
+        "King": "53033", "Kitsap": "53035", "Kittitas": "53037", "Klickitat": "53039",
+        "Lewis": "53041", "Lincoln": "53043", "Mason": "53045", "Okanogan": "53047",
+        "Pacific": "53049", "Pend Oreille": "53051", "Pierce": "53053", "San Juan": "53055",
+        "Skagit": "53057", "Skamania": "53059", "Snohomish": "53061", "Spokane": "53063",
+        "Stevens": "53065", "Thurston": "53067", "Wahkiakum": "53069", "Walla Walla": "53071",
+        "Whatcom": "53073", "Whitman": "53075", "Yakima": "53077",
+    }
+    county_map_data["FIPS"] = county_map_data["County"].map(WA_COUNTY_FIPS)
+
+    metric = st.radio(
+        "Color by",
+        ["ASC Count", "ASCs per 100k"],
+        horizontal=True,
+    )
+    metric_col = "ASC_Count" if metric == "ASC Count" else "ASCs_per_100k"
+    metric_label = metric
+
+    m = folium.Map(location=[47.4, -120.7], zoom_start=7, tiles="CartoDB positron")
+
+    folium.Choropleth(
+        geo_data=wa_geojson,
+        name="choropleth",
+        data=county_map_data,
+        columns=["FIPS", metric_col],
+        key_on="feature.id",
+        fill_color="YlOrRd",
+        fill_opacity=0.7,
+        line_opacity=0.3,
+        legend_name=metric_label,
+        nan_fill_color="lightgrey",
+    ).add_to(m)
+
+    # Tooltip layer
+    tooltip_data = county_map_data.set_index("FIPS")[
+        ["County", "ASC_Count", "ASCs_per_100k", "Population", "Specialties"]
+    ].to_dict(orient="index")
+
+    for feature in wa_geojson["features"]:
+        fips = feature["id"]
+        if fips in tooltip_data:
+            d = tooltip_data[fips]
+            popup_html = f"""
+                <b>{d['County']} County</b><br>
+                ASCs: {d['ASC_Count']}<br>
+                Density: {d['ASCs_per_100k']} per 100k<br>
+                Population: {d['Population']:,}<br>
+                Specialties: {d['Specialties']}
+            """
+            folium.GeoJson(
+                feature,
+                style_function=lambda x: {
+                    "fillOpacity": 0,
+                    "weight": 0,
+                },
+                tooltip=folium.Tooltip(popup_html),
+            ).add_to(m)
+
+    st_folium(m, width="100%", height=600, returned_objects=[])
 
 # ── Specialty distribution ────────────────────────────────────────────────────
 st.header("ASC Specialty Distribution")
