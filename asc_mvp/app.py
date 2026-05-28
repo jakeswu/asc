@@ -339,7 +339,26 @@ else:
                     max_width=350,
                 ),
             ).add_to(m)
+    show_facilities = st.checkbox("Show existing ASC facilities", value=True)
 
+if show_facilities:
+    facility_df = filtered_df.merge(coords, on="City", how="left").dropna(subset=["Latitude", "Longitude"])
+    
+    for _, row in facility_df.iterrows():
+        folium.CircleMarker(
+            location=[row["Latitude"], row["Longitude"]],
+            radius=6,
+            color="steelblue",
+            fill=True,
+            fill_color="steelblue",
+            fill_opacity=0.8,
+            tooltip=folium.Tooltip(
+                f"<b>{row['Name']}</b><br>"
+                f"Specialty: {row['Specialty']}<br>"
+                f"Owner: {row['Owner']}<br>"
+                f"City: {row['City']}"
+            ),
+        ).add_to(m)
     st_folium(m, width="100%", height=600, returned_objects=[])
 
 
