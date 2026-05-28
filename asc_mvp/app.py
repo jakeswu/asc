@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit.components.v1 as components
 import folium
+import requests
 from streamlit_folium import st_folium
 
 import requests as req
