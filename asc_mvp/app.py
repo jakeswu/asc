@@ -7,25 +7,13 @@ import requests as req
 
 def track_pageview():
     try:
-        req.get(
-            "https://ascwastate.goatcounter.com/count",
-            params={
-                "p": "/",
-                "t": "WA ASC Intelligence",
-            },
-            timeout=2,
-        )
-    except Exception:
-        pass
-
-def track_pageview():
-    try:
         r = req.get(
             "https://ascwastate.goatcounter.com/count",
             params={
                 "p": "/",
                 "t": "WA ASC Intelligence",
             },
+            headers={"User-Agent": "Mozilla/5.0"},
             timeout=2,
         )
         st.write(r.status_code)  # temporary debug
