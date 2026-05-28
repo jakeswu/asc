@@ -35,9 +35,10 @@ pop_df = pd.DataFrame([
 ])
 
 # ── Load data ─────────────────────────────────────────────────────────────────
-df = pd.read_csv("ascs.csv")
-coords = pd.read_csv("city_coordinates.csv")
-movements_df = pd.read_csv("movements.csv")
+df = pd.read_csv("asc_mvp/ascs.csv")
+coords = pd.read_csv("asc_mvp/city_coordinates.csv")
+movements_df = pd.read_csv("asc_mvp/movements.csv")
+city_county = pd.read_csv("asc_mvp/city_to_county.csv")
 
 # Add County via city lookup
 city_county = pd.read_csv("city_to_county.csv")
