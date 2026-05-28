@@ -25,14 +25,6 @@ st.set_page_config(page_title="WA ASC Intelligence", layout="wide")
 st.title("WA ASC Intelligence")
 st.caption("Helping you spot patterns and unmet needs")
 
-st.markdown(
-    """
-    <script data-goatcounter="https://ascwastate.goatcounter.com/count"
-            async src="https://gc.zgo.at/count.js"></script>
-    """,
-    unsafe_allow_html=True,
-)
-
 # ── WA County Population (Census ACS 2022, baked in to avoid API dependency) ──
 WA_COUNTY_POPULATION = {
     "Adams": 21040, "Asotin": 22582, "Benton": 204390, "Chelan": 79801,
