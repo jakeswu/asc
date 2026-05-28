@@ -5,10 +5,6 @@ import streamlit.components.v1 as components
 
 import requests as req
 
-        <script data-goatcounter="https://ascwastate.goatcounter.com/count"
-                async src="//gc.zgo.at/count.js"></script>
-
-
 def track_pageview():
     try:
         r = req.get(
@@ -33,6 +29,8 @@ st.set_page_config(page_title="WA ASC Intelligence", layout="wide")
 
 st.title("WA ASC Intelligence")
 st.caption("Helping you spot patterns and unmet needs")
+<script data-goatcounter="https://ascwastate.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 
 # ── WA County Population (Census ACS 2022, baked in to avoid API dependency) ──
 WA_COUNTY_POPULATION = {
