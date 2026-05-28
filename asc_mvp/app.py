@@ -13,12 +13,15 @@ def track_pageview():
                 "p": "/",
                 "t": "WA ASC Intelligence",
             },
-            headers={"User-Agent": "Mozilla/5.0"},
+            headers={
+                "User-Agent": "Mozilla/5.0",
+                "Referer": "https://ascwastate.streamlit.app",
+            },
             timeout=2,
         )
-        st.write(r.status_code)  # temporary debug
+        st.write(r.status_code)
     except Exception as e:
-        st.write(f"Error: {e}")  # temporary debug
+        st.write(f"Error: {e}")
 
 track_pageview()
 
