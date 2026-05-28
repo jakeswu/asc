@@ -176,11 +176,11 @@ st.header("ASC Concentration Map")
 
 map_view = st.radio(
     "View by",
-    ["City (bubbles)", "County (density)"],
+    ["Facility View", "County (density)"],
     horizontal=True,
 )
 
-if map_view == "City (bubbles)":
+if map_view == "Facility View":
     map_df = filtered_df.merge(coords, on="City", how="left")
 
     city_summary = (
