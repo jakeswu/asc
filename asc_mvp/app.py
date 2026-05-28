@@ -174,56 +174,6 @@ from streamlit_folium import st_folium
 
 st.header("ASC Concentration Map")
 
-map_view = st.radio(
-    "View by",
-    ["Facility View", "County (density)"],
-    horizontal=True,
-)
-
-if map_view == "Facility View":
-    map_df = filtered_df.merge(coords, on="City", how="left")
-
-    city_summary = (
-        map_df.dropna(subset=["Latitude", "Longitude"])
-        .groupby(["City", "Region", "Latitude", "Longitude"])
-        .agg(
-            ASC_Count=("Name", "count"),
-            Specialty_Mix=("Specialty", lambda x: ", ".join(sorted(set(x.dropna())))),
-            ASC_Names=("Name", lambda x: "<br>".join(sorted(x.dropna()))),
-        )
-        .reset_index()
-    )
-
-    if not city_summary.empty:
-        fig = px.scatter_mapbox(
-            city_summary,
-            lat="Latitude",
-            lon="Longitude",
-            size="ASC_Count",
-            color="Region",
-            hover_name="City",
-            hover_data={
-                "ASC_Count": True,
-                "Specialty_Mix": True,
-                "ASC_Names": True,
-                "Latitude": False,
-                "Longitude": False,
-            },
-            zoom=6,
-            height=600,
-            color_discrete_sequence=px.colors.qualitative.Bold,
-        )
-        fig.update_layout(
-            mapbox_style="carto-positron",
-            mapbox_center={"lat": 47.4, "lon": -120.7},
-            margin={"r": 0, "t": 0, "l": 0, "b": 0},
-        )
-        fig.update_traces(marker=dict(opacity=0.9, sizemin=8))
-        st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
-    else:
-        st.info("No map data available for the current filters.")
-
-else:
     # County choropleth via Folium
     @st.cache_data(ttl=86400)
     def load_wa_geojson():
