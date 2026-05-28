@@ -3,6 +3,23 @@ import pandas as pd
 import plotly.express as px
 import streamlit.components.v1 as components
 
+import requests as req
+
+def track_pageview():
+    try:
+        req.get(
+            "https://ascwastate.goatcounter.com/count",
+            params={
+                "p": "/",
+                "t": "WA ASC Intelligence",
+            },
+            timeout=2,
+        )
+    except Exception:
+        pass
+
+track_pageview()
+
 st.set_page_config(page_title="WA ASC Intelligence", layout="wide")
 
 st.title("WA ASC Intelligence")
