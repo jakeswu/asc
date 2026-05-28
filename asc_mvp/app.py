@@ -324,7 +324,20 @@ else:
                     "fillOpacity": 0,
                     "weight": 0,
                 },
-                tooltip=folium.Tooltip(popup_html),
+                tooltip=folium.Tooltip(
+                    f"<b>{d['County']} County</b><br>"
+                    f"ASCs: {d['ASC_Count']} | "
+                    f"Density: {d['ASCs_per_100k']} per 100k<br>"
+                    f"Population: {d['Population']:,}"
+                ),
+                popup=folium.Popup(
+                    f"<b>{d['County']} County</b><br>"
+                    f"ASCs: {d['ASC_Count']} | Density: {d['ASCs_per_100k']} per 100k<br>"
+                    f"Population: {d['Population']:,}<br>"
+                    f"Specialties: {d['Specialties']}<br><br>"
+                    f"<b>Facilities:</b><br>• {d['ASC_Names']}",
+                    max_width=350,
+                ),
             ).add_to(m)
 
     st_folium(m, width="100%", height=600, returned_objects=[])
