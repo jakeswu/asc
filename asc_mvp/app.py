@@ -56,6 +56,9 @@ coords = pd.read_csv("asc_mvp/city_coordinates.csv")
 movements_df = pd.read_csv("asc_mvp/movements.csv")
 pop_df = fetch_wa_county_population()
 
+city_county = pd.read_csv("asc_mvp/city_to_county.csv")
+df = df.merge(city_county, on="City", how="left")
+
 # ── Sidebar filters ───────────────────────────────────────────────────────────
 st.sidebar.header("Filters")
 
