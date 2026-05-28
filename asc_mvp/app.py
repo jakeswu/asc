@@ -18,6 +18,20 @@ def track_pageview():
     except Exception:
         pass
 
+def track_pageview():
+    try:
+        r = req.get(
+            "https://ascwastate.goatcounter.com/count",
+            params={
+                "p": "/",
+                "t": "WA ASC Intelligence",
+            },
+            timeout=2,
+        )
+        st.write(r.status_code)  # temporary debug
+    except Exception as e:
+        st.write(f"Error: {e}")  # temporary debug
+
 track_pageview()
 
 st.set_page_config(page_title="WA ASC Intelligence", layout="wide")
